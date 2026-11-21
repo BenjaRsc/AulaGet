@@ -121,8 +121,6 @@ class AulaGet():
 
         return dis
 
-
-
     def GetCarpetaContenidos(self, url):
         html = self.session.get(url)
         soup = BeautifulSoup(html.text, "lxml")
