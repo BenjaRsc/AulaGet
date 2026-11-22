@@ -13,12 +13,10 @@ class Window(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QVBoxLayout()
         labelBottom = QtWidgets.QLabel("Footer")
-
         sesion = SesionMoodle()
+
         layout.addWidget(sesion)
-
         layout.addWidget(labelBottom)
-
 
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
@@ -63,8 +61,8 @@ class Cursos(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.layout = QtWidgets.QVBoxLayout(self)
-        label = QtWidgets.QLabel("Cursos")
-        self.layout.addWidget(label)
+        self.tabs = QtWidgets.QTabWidget()
+
 
     def Mostrar(self):
         self.index = 0
@@ -73,11 +71,28 @@ class Cursos(QtWidgets.QWidget):
             self.combo.addItem(nombre)
 
         self.layout.addWidget(self.combo)
-        self.combo.currentTextChanged.connect(self.MostrarValor)
-        print(f'Nombre principio: {self.combo.currentText()}')
+        self.layout.addWidget(self.tabs)
 
-    def MostrarValor(self, value):
-        print(value)
+        aula.GetSecciones(aula.cursos[self.combo.currentText()])
+        for seccion in aula.secciones:
+            self.tabs.addTab(QtWidgets.QWidget(), seccion)
+
+        # self.tabs.currentChanged.connect(self.CargarElementos)
+        self.combo.currentTextChanged.connect(self.MostrarSecciones)
+
+
+    def MostrarSecciones(self, value):
+        self.tabs.clear()
+        aula.GetSecciones(aula.cursos[value])
+        for seccion in aula.secciones:
+            self.tabs.addTab(QtWidgets.QWidget(), seccion)
+
+    
+
+    def CargarElementos(self):
+        aula.GetSecciones(aula.cursos[self.combo.currentText()])
+        for seccion in aula.secciones:
+            self.tabs.addTab(QtWidgets.QWidget(), seccion)
 
 
 if __name__ == "__main__":
