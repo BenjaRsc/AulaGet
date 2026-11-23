@@ -60,18 +60,19 @@ class AulaGet():
         elementos = soup.find_all(class_='aalink stretched-link')
 
         for elemento in elementos:
-            nombre_elemento = elemento.text.strip()
+            nombre_elemento = elemento.text.strip().split(' ')[0:-1]
+            nombre_elemento = ' '.join(nombre_elemento)
             link_elemento = elemento['href']
             tipo_elemento = self.GetTipo(link_elemento)
 
-            if (tipo_elemento == 'archivo'):
-                link_elemento = self.LinkPdf(link_elemento)
+            # if (tipo_elemento == 'archivo'):
+            #     link_elemento = self.LinkPdf(link_elemento)
 
             elem[nombre_elemento] = {'tipo': tipo_elemento, 'link': link_elemento}
 
         return elem
 
-    def GetTipo(link):
+    def GetTipo(self, link):
         if ('forum' in link):
             return 'forum'
 

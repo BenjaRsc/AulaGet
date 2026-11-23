@@ -1,6 +1,7 @@
 from aula import AulaGet
 import sys
 from PySide6 import QtCore, QtWidgets, QtGui
+import webbrowser
 
 aula = AulaGet()
 
@@ -75,24 +76,46 @@ class Cursos(QtWidgets.QWidget):
 
         aula.GetSecciones(aula.cursos[self.combo.currentText()])
         for seccion in aula.secciones:
-            self.tabs.addTab(QtWidgets.QWidget(), seccion)
+            self.tabs.addTab(Seccion(aula.secciones[seccion]), seccion)
 
-        # self.tabs.currentChanged.connect(self.CargarElementos)
+        self.tabs.currentChanged.connect(self.CargarElementos)
         self.combo.currentTextChanged.connect(self.MostrarSecciones)
 
+        self.CargarElementos()
 
-    def MostrarSecciones(self, value):
+
+    def MostrarSecciones(self, curso):
         self.tabs.clear()
-        aula.GetSecciones(aula.cursos[value])
+        aula.GetSecciones(aula.cursos[curso])
         for seccion in aula.secciones:
-            self.tabs.addTab(QtWidgets.QWidget(), seccion)
-
+            self.tabs.addTab(Seccion(aula.secciones[seccion]), seccion)
     
+        self.CargarElementos()
 
     def CargarElementos(self):
-        aula.GetSecciones(aula.cursos[self.combo.currentText()])
-        for seccion in aula.secciones:
-            self.tabs.addTab(QtWidgets.QWidget(), seccion)
+        if (self.tabs.currentWidget() != None):
+            self.tabs.currentWidget().MostrarElementos()
+
+
+class Seccion(QtWidgets.QWidget):
+    def __init__(self, link):
+        super().__init__()
+        self.link = link
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setSpacing(2)                   
+        self.layout.setContentsMargins(4, 4, 4, 4) 
+        self.elementos = None
+
+    def MostrarElementos(self):
+        if (self.elementos == None):
+            self.elementos = aula.GetElementos(self.link)
+            for elemento in self.elementos:
+                boton = QtWidgets.QPushButton(elemento)
+                boton.setStyleSheet("text-align: left; padding: 6px 10px;")
+                boton.clicked.connect(lambda: webbrowser.open(self.elementos[elemento]['link']))
+                self.layout.addWidget(boton)
+
+            self.layout.addStretch()
 
 
 if __name__ == "__main__":
