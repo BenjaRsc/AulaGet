@@ -110,13 +110,25 @@ class Seccion(QtWidgets.QWidget):
         if (self.elementos == None):
             self.elementos = aula.GetElementos(self.link)
             for elemento in self.elementos:
+                layoutH = QtWidgets.QHBoxLayout()
+
+                check = QtWidgets.QCheckBox("")
                 boton = QtWidgets.QPushButton(elemento)
                 boton.setStyleSheet("text-align: left; padding: 6px 10px;")
-                boton.clicked.connect(lambda: webbrowser.open(self.elementos[elemento]['link']))
-                self.layout.addWidget(boton)
+
+                l = self.elementos[elemento]['link']
+                boton.clicked.connect(lambda checked=False, link=l: self.Abrir(link))
+
+                layoutH.addWidget(check)
+                layoutH.addWidget(boton)
+                layoutH.addStretch()
+
+                self.layout.addLayout(layoutH)
 
             self.layout.addStretch()
 
+    def Abrir(self, link):
+        webbrowser.open(link)
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
