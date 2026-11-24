@@ -213,14 +213,12 @@ class Window(QtWidgets.QMainWindow):
         super().__init__()
 
         self.setWindowTitle('AulaGet')
+        self.setMinimumHeight(420)
 
         layout = QtWidgets.QVBoxLayout()
-        labelBottom = QtWidgets.QLabel("Footer")
-        labelBottom.setObjectName("footer")
         sesion = SesionMoodle()
 
         layout.addWidget(sesion)
-        layout.addWidget(labelBottom)
 
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
@@ -337,6 +335,151 @@ class Cursos(QtWidgets.QWidget):
             self.tabs.currentWidget().MostrarElementos()
 
 
+class Nodo(QtWidgets.QWidget):
+    def __init__(self, seccion, nombre, tipo, link, clave, padre=None):
+        super().__init__()
+        self.seccion = seccion
+        self.nombre = nombre
+        self.tipo = tipo
+        self.link = link
+        self.clave = clave
+        self.padre = padre
+        self.abierto = False
+        self.cargado = False
+        self.cargando = False
+
+        expandible = tipo in ('folder', 'forum', 'discusion')
+        descargable = tipo in ('archivo', 'folder')
+
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setSpacing(2)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.check = QtWidgets.QCheckBox("")
+        self.check.setEnabled(descargable)
+
+        # La flecha conserva su espacio aunque esté oculta, para alinear las filas
+        self.toggle = QtWidgets.QPushButton("▸")
+        self.toggle.setObjectName("toggle")
+        politica = self.toggle.sizePolicy()
+        politica.setRetainSizeWhenHidden(True)
+        self.toggle.setSizePolicy(politica)
+
+        # Solo se oculta, nunca se hace show() aquí: el botón aún no tiene padre
+        # y se abriría como una ventana independiente
+        if (not expandible):
+            self.toggle.hide()
+
+        self.boton = QtWidgets.QPushButton(nombre)
+        self.boton.setObjectName("elemento")
+        self.boton.setProperty("tipo", tipo)
+
+        self.botonDescarga = QtWidgets.QPushButton("Descargar")
+        self.botonDescarga.setObjectName("descarga")
+        self.botonDescarga.setEnabled(descargable)
+
+        if (tipo in ('forum', 'discusion')):
+            self.botonDescarga.setToolTip("Expande para descargar los archivos adjuntos")
+        elif (not descargable):
+            self.botonDescarga.setToolTip("Este tipo de elemento no se puede descargar")
+
+        layoutH = QtWidgets.QHBoxLayout()
+        layoutH.addWidget(self.check)
+        layoutH.addWidget(self.toggle)
+        layoutH.addWidget(self.boton, 1)
+        layoutH.addWidget(self.botonDescarga)
+        self.layout.addLayout(layoutH)
+
+        # Contenido desplegable, se llena la primera vez que se abre
+        self.hijos = QtWidgets.QWidget()
+        self.layoutHijos = QtWidgets.QVBoxLayout(self.hijos)
+        self.layoutHijos.setContentsMargins(28, 0, 0, 0)
+        self.layoutHijos.setSpacing(2)
+
+        self.etiqueta = QtWidgets.QLabel("Cargando...")
+        self.etiqueta.setObjectName("estado")
+        self.layoutHijos.addWidget(self.etiqueta)
+
+        self.layout.addWidget(self.hijos)
+        self.hijos.hide()
+
+        self.toggle.clicked.connect(self.Alternar)
+        self.botonDescarga.clicked.connect(lambda checked=False: self.seccion.Descargar([self.clave]))
+
+        if (expandible):
+            self.boton.clicked.connect(self.Alternar)
+        else:
+            self.boton.clicked.connect(self.Abrir)
+
+        seccion.Registrar(self)
+
+    def Alternar(self):
+        self.abierto = not self.abierto
+        self.toggle.setText("▾" if self.abierto else "▸")
+        self.hijos.setVisible(self.abierto)
+
+        if (self.abierto and not self.cargado and not self.cargando):
+            self.Cargar()
+
+    def Cargar(self):
+        self.cargando = True
+        self.etiqueta.setText("Cargando...")
+        self.etiqueta.show()
+
+        funciones = {
+            'folder': aula.GetCarpetaContenidos,
+            'forum': aula.GetForo,
+            'discusion': aula.GetDiscusion
+        }
+
+        EjecutarWorker(funciones[self.tipo], self.link,
+                       resultado=self.AgregarHijos, error=self.ErrorCarga)
+
+    def AgregarHijos(self, datos):
+        self.cargado = True
+        self.cargando = False
+        self.etiqueta.hide()
+
+        if (self.tipo == 'discusion'):
+            self.AgregarDiscusion(datos)
+            return
+
+        tipo_hijo = 'archivo' if self.tipo == 'folder' else 'discusion'
+
+        for nombre, link in datos.items():
+            self.AgregarHijo(nombre, tipo_hijo, link)
+
+        if (not datos):
+            self.AgregarTexto("(Vacío)", "estado")
+
+    def AgregarDiscusion(self, datos):
+        texto = re.sub(r'\n\s*\n+', '\n\n', datos['contenido'])
+        self.AgregarTexto(texto if texto else "(Sin contenido)", "contenido")
+
+        for nombre, link in datos['archivos'].items():
+            self.AgregarHijo(nombre, 'archivo', link)
+
+    def AgregarHijo(self, nombre, tipo, link):
+        nodo = Nodo(self.seccion, nombre, tipo, link, f"{self.clave}/{nombre}", self.clave)
+        self.layoutHijos.addWidget(nodo)
+
+    def AgregarTexto(self, texto, estilo):
+        etiqueta = QtWidgets.QLabel(texto)
+        etiqueta.setObjectName(estilo)
+        etiqueta.setWordWrap(True)
+        etiqueta.setTextFormat(QtCore.Qt.PlainText)
+        etiqueta.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.layoutHijos.addWidget(etiqueta)
+
+    def ErrorCarga(self, mensaje):
+        self.cargando = False
+        self.etiqueta.setText("No se pudo cargar. Ciérralo y ábrelo de nuevo para reintentar.")
+        MostrarError(mensaje)
+
+    def Abrir(self):
+        webbrowser.open(self.link)
+
+
 class Seccion(QtWidgets.QWidget):
     def __init__(self, link, nombre):
         super().__init__()
@@ -348,7 +491,7 @@ class Seccion(QtWidgets.QWidget):
         self.elementos = None
         self.cargando = False
         self.descargando = False
-        self.checks = {}
+        self.nodos = {}
         self.botonesDescarga = []
 
         self.seleccionar = QtWidgets.QCheckBox("Seleccionar todo")
@@ -356,6 +499,8 @@ class Seccion(QtWidgets.QWidget):
         self.descargar = QtWidgets.QPushButton("Descargar seleccionados")
         self.estado = QtWidgets.QLabel("")
         self.estado.setObjectName("estado")
+        self.estado.setWordWrap(True)
+        self.estado.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred)
 
         self.seleccionar.setEnabled(False)
         self.descargar.setEnabled(False)
@@ -366,8 +511,19 @@ class Seccion(QtWidgets.QWidget):
         layoutH.addWidget(self.comprimir)
         layoutH.addWidget(self.descargar)
 
+        # Los elementos van dentro de un área con scroll
+        self.contenedor = QtWidgets.QWidget()
+        self.layoutElementos = QtWidgets.QVBoxLayout(self.contenedor)
+        self.layoutElementos.setSpacing(2)
+        self.layoutElementos.setContentsMargins(0, 0, 0, 0)
+
+        self.scroll = QtWidgets.QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setWidget(self.contenedor)
+
         self.layout.addLayout(layoutH)
         self.layout.addWidget(self.estado)
+        self.layout.addWidget(self.scroll)
 
         self.seleccionar.toggled.connect(self.SeleccionarTodo)
         self.descargar.clicked.connect(self.DescargarSeleccionados)
@@ -383,58 +539,43 @@ class Seccion(QtWidgets.QWidget):
         self.cargando = False
 
         for elemento in self.elementos:
-            layoutH = QtWidgets.QHBoxLayout()
-
             tipo = self.elementos[elemento]['tipo']
-            descargable = tipo in ('archivo', 'folder')
-
-            check = QtWidgets.QCheckBox("")
-            check.setEnabled(descargable)
-            boton = QtWidgets.QPushButton(elemento)
-            boton.setObjectName("elemento")
-            boton.setProperty("tipo", tipo)
-
-            botonDescarga = QtWidgets.QPushButton("Descargar")
-            botonDescarga.setObjectName("descarga")
-            botonDescarga.setEnabled(descargable)
-
-            if (descargable):
-                self.botonesDescarga.append(botonDescarga)
-            else:
-                botonDescarga.setToolTip("Este tipo de elemento no se puede descargar")
-
             l = self.elementos[elemento]['link']
-            boton.clicked.connect(lambda checked=False, link=l: self.Abrir(link))
-            botonDescarga.clicked.connect(lambda checked=False, e=elemento: self.Descargar([e]))
 
-            self.checks[elemento] = check
+            self.layoutElementos.addWidget(Nodo(self, elemento, tipo, l, elemento))
 
-            layoutH.addWidget(check)
-            layoutH.addWidget(boton, 1)
-            layoutH.addWidget(botonDescarga)
-
-            self.layout.addLayout(layoutH)
-
-        self.layout.addStretch()
+        self.layoutElementos.addStretch()
 
         self.seleccionar.setEnabled(True)
         self.descargar.setEnabled(True)
 
+    def Registrar(self, nodo):
+        self.nodos[nodo.clave] = nodo
+
+        if (nodo.tipo in ('archivo', 'folder')):
+            self.botonesDescarga.append(nodo.botonDescarga)
+
+            if (self.descargando):
+                nodo.botonDescarga.setEnabled(False)
+
     def SeleccionarTodo(self, marcado):
-        for check in self.checks.values():
-            if (check.isEnabled()):
-                check.setChecked(marcado)
+        for nodo in self.nodos.values():
+            if (nodo.check.isEnabled()):
+                nodo.check.setChecked(marcado)
 
     def DescargarSeleccionados(self):
-        nombres = [e for e, check in self.checks.items() if check.isChecked()]
+        marcados = [c for c, nodo in self.nodos.items() if nodo.check.isChecked()]
 
-        if (not nombres):
+        # Si una carpeta está marcada, sus archivos ya van incluidos
+        claves = [c for c in marcados if self.nodos[c].padre not in marcados]
+
+        if (not claves):
             self.estado.setText("Selecciona al menos un elemento para descargar")
             return
 
-        self.Descargar(nombres)
+        self.Descargar(claves)
 
-    def Descargar(self, nombres):
+    def Descargar(self, claves):
         if (self.descargando):
             return
 
@@ -445,8 +586,18 @@ class Seccion(QtWidgets.QWidget):
 
         ajustes["destino"] = destino
 
-        items = [(n, self.elementos[n]['tipo'], self.elementos[n]['link']) for n in nombres]
-        nombre_zip = nombres[0] if len(nombres) == 1 else self.nombre
+        nodos = [self.nodos[c] for c in claves]
+        items = [(n.nombre, n.tipo, n.link) for n in nodos]
+
+        if (len(nodos) == 1):
+            nombre_zip = nodos[0].nombre
+
+            # Un archivo suelto no debe quedar como "archivo.pdf.zip"
+            if (nodos[0].tipo == 'archivo'):
+                nombre_zip = os.path.splitext(nombre_zip)[0]
+        else:
+            nombre_zip = self.nombre
+
         descargador = Descargador(destino, self.comprimir.isChecked(), nombre_zip)
 
         self.Bloquear(True)
@@ -478,15 +629,13 @@ class Seccion(QtWidgets.QWidget):
         self.cargando = False
         MostrarError(mensaje)
 
-    def Abrir(self, link):
-        webbrowser.open(link)
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
     app.setStyleSheet(ESTILOS)
 
     window = Window()
-    window.resize(800, 800)
+    pantalla = app.primaryScreen().availableGeometry()
+    window.resize(min(800, int(pantalla.width() * 0.9)), min(800, int(pantalla.height() * 0.9)))
     window.show()
 
     sys.exit(app.exec())
