@@ -138,33 +138,30 @@ class AulaGet():
 
 
 
+if __name__ == "__main__":
+    # Ejemplo de uso
+    aula = AulaGet()
+    moodle_session = ""
+    aula.IniciarMoodle(moodle_session)
+
+    aula.GetCursos()
+    # print(aula.cursos)
 
 
-# Ejemplo de uso
-aula = AulaGet()
-moodle_session = ""
-aula.IniciarMoodle(moodle_session)
+    # Cursos
+    for curso in aula.cursos:
+        link = aula.cursos[curso]
+        print(curso)
+        print(link)
 
-aula.GetCursos()
-# print(aula.cursos)
+        print("Secciones")
+        aula.GetSecciones(link)
 
+        # Secciones
+        for seccion in aula.secciones:
+            link_seccion = aula.secciones[seccion]
+            print(f'{seccion}: {link_seccion}')
+            print()
 
-# Cursos
-for curso in aula.cursos:
-    link = aula.cursos[curso]
-    print(curso)
-    print(link)
-
-    print("Secciones")
-    aula.GetSecciones(link)
-
-    # Secciones
-    for seccion in aula.secciones:
-        link_seccion = aula.secciones[seccion]
-        print(f'{seccion}: {link_seccion}')
         print()
-
-
-
-    print()
-    print()
+        print()

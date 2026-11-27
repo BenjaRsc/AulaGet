@@ -6,9 +6,9 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/PySide6-41CD52?style=for-the-badge&logo=qt&logoColor=white" alt="PySide6">
-  <img src="https://img.shields.io/badge/BeautifulSoup4-8A2BE2?style=for-the-badge&logo=databricks&logoColor=white" alt="BeautifulSoup">
-  <img src="https://img.shields.io/badge/Requests-2C5BB4?style=for-the-badge&logo=postman&logoColor=white" alt="Requests">
-  <img src="https://img.shields.io/badge/lxml-E34F26?style=for-the-badge&logo=xml&logoColor=white" alt="lxml">
+  <img src="https://img.shields.io/badge/BeautifulSoup4-8A2BE2?style=for-the-badge&logo=html5&logoColor=white" alt="BeautifulSoup">
+  <img src="https://img.shields.io/badge/Requests-2C5BB4?style=for-the-badge&logo=curl&logoColor=white" alt="Requests">
+  <img src="https://img.shields.io/badge/lxml-E34F26?style=for-the-badge&logo=w3c&logoColor=white" alt="lxml">
   <img src="https://img.shields.io/badge/Moodle-F98012?style=for-the-badge&logo=moodle&logoColor=white" alt="Moodle">
 </p>
 <img src="assets/AulaGet.png" alt="AulaGet logo" width="120">
